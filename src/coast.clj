@@ -2,7 +2,7 @@
   (:require [potemkin :refer [import-vars]]
             [hiccup2.core]
             [coast.db]
-            [coast.eta]
+            [coast.theta]
             [coast.env]
             [coast.time]
             [coast.components]
@@ -59,7 +59,7 @@
    wrap-layout
    wrap-with-layout]
 
-  [coast.eta
+  [coast.theta
    server
    app
    url-for

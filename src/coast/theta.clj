@@ -1,4 +1,4 @@
-(ns coast.eta
+(ns coast.theta
   (:require [coast.middleware :refer [wrap-logger wrap-file]]
             [coast.middleware.site :refer [wrap-site-defaults]]
             [coast.middleware.api :refer [wrap-api-defaults]]
@@ -68,6 +68,7 @@
    (url-for k {})))
 
 (defn action-for
+  "Creates a form action from a route name"
   ([k m]
    ((action-for-routes routes) k m))
   ([k]

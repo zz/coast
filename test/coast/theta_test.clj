@@ -1,5 +1,5 @@
-(ns coast.eta-test
-  (:require [coast.eta :as coast]
+(ns coast.theta-test
+  (:require [coast.theta :as coast]
             [clojure.test :refer [deftest testing is]]))
 
 (def routes [[:get "/" ::home]
