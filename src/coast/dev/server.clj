@@ -1,8 +1,10 @@
 (ns coast.dev.server
-  (:require [coast.repl :as repl]
-            [org.httpkit.server :as httpkit]
+  (:require [coast.db]
             [coast.env :as env]
+            [coast.repl :as repl]
             [coast.utils :as utils]
+            [lighthouse.core :as db]
+            [org.httpkit.server :as httpkit]
             [ring.middleware.reload :as reload]))
 
 (def server (atom nil))
@@ -13,6 +15,7 @@
   ([app opts]
    (let [port (-> (or (:port opts) (env/env :port) 1337)
                   (utils/parse-int))]
+     (reset! coast.db/conn (db/connect (env/env :database-url)))
      (def app app)
      (reset! server (httpkit/run-server (reload/wrap-reload #'app)
                                         (merge opts {:port port})))
@@ -22,6 +25,8 @@
   (when (not (nil? @server))
     (@server :timeout 100)
     (reset! server nil)
+    (db/disconnect @coast.db/conn)
+    (reset! coast.db/conn nil)
     (println "Resetting dev server")))
 
 (defn restart
