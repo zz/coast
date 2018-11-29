@@ -14,7 +14,7 @@ Remove the O and the M in ORM. Data in, data out. Everything transparent and dec
 
 Not sure if it's any better than CRUD anywhere else, but the R in there is definitely unlike anything in any other web framework. Here's how it works.
 
-## R in CRUD
+## Queries
 
 ```clojure
 (ns r-in-crud
@@ -73,6 +73,44 @@ it's shamelessly stolen from datomic. This is how it looks.
 
 Which will output what you saw earlier. It uses the relationship names and data from the schema earlier to build the select and join parts of the query.
 
+Here are some other examples of querying in coast
+
+```clojure
+(db/q conn '[:select todo/name todo/done
+             :where [todo/done ?done]
+                    [todo/name like ?name]
+             :order todo/created-at desc]
+           {:done true
+            :name "%write%"})
+; => [{:todo/name "write readme" :todo/done true}]
+
+; or like this
+(db/q conn '[:select todo/name todo/done
+             :from todo
+             :where [todo/done true]])
+; => [{:todo/name "write readme" :todo/done true}]
+
+; if you don't want to specify every column, you don't have to
+(db/q conn '[:select todo/*
+             :from todo
+             :where [todo/done false]])
+; => [{:todo/id 1 :todo/name ... :todo/done false :todo/created-at ...}]
+
+; joins are supported too
+(db/q conn '[:select todo/* person/*
+             :from todo
+             :joins person/todos])
+; => [{:todo/id 1 :todo/name ... :person/id 1 :person/name "swlkr" ...}]
+
+; you can also add a sql string in the where clause
+(db/q conn '[:select todo/name todo/done
+             :where [todo/done ?done]
+                    ["todo.created_at > now()"]
+             :order todo/created-at desc]
+           {:done true})
+; => [{:todo/name "write readme" :todo/done true}]
+```
+
 ## The limits of pull
 
 But wait a minute, how do you control the order they get returned in that fancy pull query? Here's how
@@ -115,66 +153,61 @@ If you know you only want to pull nested rows from one entity, you can use the `
 
 Unfortunately, or fortunately, if you want to get *really* crazy with a pull, you can't. You'll have to drop down to SQL and manipulate things with clojure yourself. The point of pull is to handle the common case, it doesn't handle arbitrary SQL functions or crazy SQL syntax. You'll have to either call `q` for that or fall back to SQL.
 
-## Transactions
+## Insert
 
-Here's two examples of inserting
-
-```clojure
-(transact {:post/title "3 things you should know about Coast on Clojure"
-           :post/body "1. It's great. 2. It's tremendous. 3. It's making web development fun again."
-           :post/author [:author/name "Cody Coast"]})
-```
-
-In cases where you already know the primary key, you can just pass that in place of the ident
+Insert data into the database like this
 
 ```clojure
-(transact {:post/title "3 things you should know about Coast on Clojure"
-           :post/body "1. It's great. 2. It's tremendous. 3. It's making web development fun again."
-           :post/author 2})
+; simple one row insert
+(let [p (db/insert conn {:person/name "swlkr"})]
+
+  ; insert multiple rows like this
+  ; p is auto-resolved to (get p :person/id)
+  (db/insert conn [{:todo/name "write readme"
+                    :todo/person p
+                    :todo/done true}
+                   {:todo/name "write tests 😅"
+                    :todo/person p
+                    :todo/done false}]})
+
+; or just manually set the foreign key integer value
+(db/insert conn [{:todo/name "write readme"
+                  :todo/person 1
+                  :todo/done true}
+                 {:todo/name "write tests 😅"
+                  :todo/person 1
+                  :todo/done false}]}))
 ```
 
-Here's two examples of updating records
+## Update
+
+Update data like this
 
 ```clojure
-(transact {:post/title "5 things you should know about Coast on Clojure"
-           :post/id 1})
+(db/update conn {:todo/id 2 :todo/name "write tests 😅😅😅"})
 
-;  or with an ident
+; you can either perform an update after a select
+(let [todos (db/q conn '[:select todo/id
+                         :where [todo/done false]])] ; => [{:todo/id 2} {:todo/id 3}]
+  (db/update conn (map #(assoc % :todo/done true) todos)))
 
-(transact {:post/title "5 things you should know about Coast on Clojure"
-           :post/slug "07-10-2018-3-things-you-should-know"})
+; or update from transact
+(db/transact conn '[:update todo
+                    :set [todo/done true]
+                    :where [todo/id [2 3]]])
 ```
-
-Here's another cool thing you can do although, it's currently limited to one level of relations deep
-
-```clojure
-(transact {:post/slug "07-10-2018-3-things-you-should-know"
-           :post/comments [{:comment/text "+1"}
-                           {:comment/text "+1"}]})
-```
-
-Tired of those +1's? Get rid of 'em
-
-```clojure
-(transact {:post/slug "07-10-2018-3-things-you-should-know"
-           :post/comments []})
-```
-
-That will delete all of that post's comments. Is this dangerous? Yes, so be careful out there.
 
 ## Delete
 
-You can delete rows by any table/col pair, multiple column delete is still under construction...
+Delete data like this
 
 ```clojure
-(delete {:author/name "Cody Coast"})
-```
+(db/delete conn {:todo/id 1})
 
-you can also delete multiple rows at a time with the same key
+; or multiple rows like this
+(db/delete conn [{:todo/id 1} {:todo/id 2} {:todo/id 3}])
 
-```clojure
-(delete [{:author/name "Cody Coast"}
-         {:author/name "Carol Coast"}])
-```
-
-and since Coast is managing your schema, you get `on delete cascade` without even thinking about it!
+; there's always transact too
+(db/transact conn '[:delete
+                    :from todo
+                    :where [todo/id [1 2 3]]]) ; this implicitly does an in query

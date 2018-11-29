@@ -29,13 +29,18 @@
    rescue]
 
   [coast.db
+   migrate
+   rollback
+   defq
    q
    pull
    transact
    delete
    insert
-   update*
-   first!]
+   update
+   cols
+   create
+   drop]
 
   [coast.validation
    validate]
@@ -72,4 +77,7 @@
 
   [hiccup2.core
    raw
-   html])
+   html]
+
+  [coast.generators
+   gen])
