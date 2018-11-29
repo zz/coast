@@ -43,7 +43,7 @@ Here's a clojure function named `db.posts`
 
 ```clojure
 (ns db.posts
-  (:require [coast.db :refer [defq]]))
+  (:require [coast :refer [defq]]))
 
 (defq "sql/posts.generated.sql")
 ```
@@ -77,9 +77,9 @@ join
 
 ```clojure
 (ns db.posts
-  (:require [coast.db :refer [defq]]))
+  (:require [coast :refer [defq]]))
 
-(defq posts-with-count "sql/posts.sql")
+(defq "sql/posts.sql")
 
 (posts-with-count {:post-id 1}) ; => [{:id 1 ... :comment-count 12}]
 ```
