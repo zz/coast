@@ -56,7 +56,8 @@
    prefix-routes]
 
   [coast.middleware.site
-   wrap-layout]
+   wrap-layout
+   wrap-with-layout]
 
   [coast.eta
    server
