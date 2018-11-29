@@ -1,36 +1,51 @@
 (ns coast.generators
-  (:require [clojure.string :as string]
+  (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [coast.generators.action :as generators.action]
-            [coast.migrations.sql :as migrations.sql]
-            [coast.migrations.edn :as migrations.edn]))
+            [clojure.string :as string]
+            [coast.generators.resource :as resource]))
 
 (defn usage []
   (println "Usage:
   coast new <project-name>
+  coast gen resource <name>                                   # Creates a new file with the common crud functions in src/<resource>.clj
+  coast gen migration <table>/<col> <table>/<another-col> ... # Creates a new edn migration in resources/migrations.edn
+  coast gen sql:migration                                     # Creates a new sql migration in resources/migrations.edn
 
 Examples:
-  coast new foo
-  coast new another-foo
+  coast new my-project
 
-  coast gen migration <name>           # Creates a new edn migration file
-  coast gen sql:migration <name>       # Creates a new sql migration file
-  coast gen action <resource>          # Creates a five new clj files with view/action functions in src/<resource>/create/read/update/delete/list.clj
-  coast gen action <resource>:<action> # Creates a new clj file with view/action functions in src/<resource>/<action>.clj"))
+  coast gen resource todo
+  coast gen migration todo/name todo/done-at
+  coast gen sql:migration"))
+
+(defn migration [cols]
+  (spit (io/resource "migrations.edn")
+        (str "\n" (->> (map keyword cols)
+                       (map #(hash-map :db/col % :db/type "text"))
+                       (vec)))
+        :append true))
+
+(defn sql-migration []
+  (spit (io/resource "migrations.edn")
+        (str "\n" [{:db/up "" :db/down ""}])
+        :append true))
+
+(defn resource
+  ([s]
+   (resource s {}))
+  ([s opts]
+   (resource/write s opts)))
 
 (defn gen [args]
-  (let [[_ kind arg] args]
+  (let [[kind arg] args]
     (case kind
-      "sql:migration" (migrations.sql/create arg)
-      "migration" (migrations.edn/create arg)
-      "action" (generators.action/write arg)
-      "jobs" (->> (io/resource "migrations/create_jobs.sql")
-                  (slurp)
-                  (spit (str "resources/migrations/" (migrations.sql/filename "create-jobs"))))
+      "migration" (migration (drop 2 args))
+      "sql:migration" (sql-migration arg)
+      "resource" (resource arg)
       (usage))))
 
 (defn -main [& args]
   (let [[action] args]
     (case action
-      "gen" (gen args)
+      "gen" (gen (drop 1 args))
       (usage))))

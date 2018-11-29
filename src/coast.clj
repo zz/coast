@@ -10,9 +10,10 @@
             [coast.utils]
             [coast.error]
             [coast.router]
-            [coast.jobs]
             [coast.validation]
-            [coast.middleware.site]))
+            [coast.middleware.site]
+            [coast.generators])
+  (:refer-clojure :exclude [update drop]))
 
 (import-vars
   [coast.responses
@@ -65,9 +66,6 @@
 
   [coast.env
    env]
-
-  [coast.jobs
-   queue]
 
   [coast.utils
    uuid]

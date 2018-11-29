@@ -40,15 +40,16 @@ usage() {
   cat << EOF
 Usage:
   coast new <project-name>
+  coast gen resource <name>                                   # Creates a new file with the common crud functions in src/<resource>.clj
+  coast gen migration <table>/<col> <table>/<another-col> ... # Creates a new edn migration in resources/migrations.edn
+  coast gen sql:migration                                     # Creates a new sql migration in resources/migrations.edn
 
 Examples:
-  coast new foo
-  coast new another-foo
+  coast new my-project
 
-  coast gen migration <name>           # Creates a new edn migration file
-  coast gen sql:migration <name>       # Creates a new sql migration file
-  coast gen action <resource>          # Creates a five new clj files with view/action functions in src/<resource>/new/show/edit/delete/index.clj
-  coast gen action <resource>:<action> # Creates a new clj file with view/action functions in src/<resource>/<action>.clj"))
+  coast gen resource todo
+  coast gen migration todo/name todo/done-at
+  coast gen sql:migration
 EOF
   exit 0
 }

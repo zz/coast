@@ -1,0 +1,53 @@
+(ns __resource__
+  (:require [coast]))
+
+(defn index [request]
+  (let [rows (coast/q '[:pull [__resource/*]])]
+    __table__))
+
+(defn view [request]
+  (let [__resource__ (coast/pull '[__resource__/*] [:__resource__/id (-> request :params :__resource__-id)])]
+    [:div
+      __dl-elements__]))
+
+(defn build [request]
+  (coast/form (coast/action-for ::create)
+    __form-elements__
+
+    [:input {:type "submit" :value "Build __resource__"}]))
+
+(defn create [request]
+  (let [[_ errors] (-> (coast/validate (:params request) [[:required [__qualified-keywords__]]])
+                       (select-keys [__qualified-keywords__])
+                       (coast/transact)
+                       (coast/rescue))]
+    (if (nil? errors)
+      (coast/redirect (coast/url-for :__resource__/index))
+      (build (merge request errors)))))
+
+(defn edit [request]
+  (coast/form (coast/action-for ::change)
+    __form-elements__
+
+    [:input {:type "submit" :value "Edit __resource__"}]))
+
+(defn change [request]
+  (let [[_ errors] (-> (coast/validate (:params request) [[:required [__qualified-keywords__]]])
+                       (select-keys [__qualified-keywords__])
+                       (coast/transact)
+                       (coast/rescue))]
+    (if (nil? errors)
+      (coast/redirect (coast/url-for :__resource__/view))
+      (edit (merge request errors)))))
+
+(defn delete [request]
+  (let [[_ errors] (-> (coast/q '[:select __resource__/id
+                                  :where [:__resource__/id ?__resource__-id]]
+                                (:params request))
+                       (first)
+                       (coast/delete)
+                       (coast/rescue))]
+    (if (nil? errors)
+      (coast/redirect (coast/url-for :__resource__/index))
+      (-> (coast/redirect (coast/url-for :__resource__/index))
+          (coast/flash "Something went wrong!")))))
