@@ -40,7 +40,7 @@ Examples:
   (let [[kind arg] args]
     (case kind
       "migration" (migration (drop 2 args))
-      "sql:migration" (sql-migration arg)
+      "sql:migration" (sql-migration)
       "resource" (resource arg)
       (usage))))
 
