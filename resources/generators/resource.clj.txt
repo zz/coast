@@ -2,7 +2,7 @@
   (:require [coast]))
 
 (defn index [request]
-  (let [rows (coast/q '[:pull [__resource/*]])]
+  (let [rows (coast/q '[:pull [__resource__/*]])]
     __table__))
 
 (defn view [request]
@@ -19,7 +19,7 @@
 (defn create [request]
   (let [[_ errors] (-> (coast/validate (:params request) [[:required [__qualified-keywords__]]])
                        (select-keys [__qualified-keywords__])
-                       (coast/transact)
+                       (coast/insert)
                        (coast/rescue))]
     (if (nil? errors)
       (coast/redirect (coast/url-for :__resource__/index))
@@ -34,7 +34,7 @@
 (defn change [request]
   (let [[_ errors] (-> (coast/validate (:params request) [[:required [__qualified-keywords__]]])
                        (select-keys [__qualified-keywords__])
-                       (coast/transact)
+                       (coast/update)
                        (coast/rescue))]
     (if (nil? errors)
       (coast/redirect (coast/url-for :__resource__/view))
