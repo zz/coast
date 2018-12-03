@@ -41,7 +41,10 @@
       (handler request)
       (catch Exception e
         (res/server-error
-          (exception-page request e))))))
+          (str
+           (h/html
+             (exception-page request e)))
+          {"content-type" "text/html"})))))
 
 (defn server-error [request]
   (res/server-error
@@ -58,11 +61,12 @@
       (try
         (handler request)
         (catch Exception e
-          (res/server-error
-            ((or error-fn server-error)
-             (assoc request :exception e
-                            :stacktrace (with-out-str
-                                         (st/print-stack-trace e))))))))))
+          (let [response ((or error-fn server-error)
+                          (assoc request :exception e
+                                         :stacktrace (with-out-str
+                                                       (st/print-stack-trace e))))]
+            (-> (update response :body #(-> % h/html str))
+                (assoc-in [:headers "content-type"] "text/html"))))))))
 
 (defn layout? [response layout]
   (and (some? layout)
@@ -133,8 +137,8 @@
                          (wrap-layout layout)
                          (wrap-keyword-params {:keywordize? true :parse-namespaces? true})
                          (wrap-coerce-params)
-                         (wrap-errors server-error)
                          (wrap-html-response)
+                         (wrap-errors server-error)
                          (wrap-defaults m))]
     (fn [request]
       (if (:coast.router/api-route? request)
