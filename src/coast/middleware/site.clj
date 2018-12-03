@@ -119,13 +119,11 @@
       (handler request))))
 
 (defn wrap-site-defaults [handler opts]
-  (let [layout (get opts :layout (resolve `components/layout))
-        route-server-error (-> (filter #(= (second %) "/500") (or (:routes opts) (:routes/site opts)))
-                               (first)
-                               (nth 2)
-                               (utils/keyword->symbol)
-                               (utils/resolve-safely))
-        server-error (or (get opts :site/server-error (resolve `error.server-error/view))
+  (let [layout (get opts :site/layout (resolve `components/layout))
+        routes (or (:routes opts) (:routes/site opts))
+        route-server-error (router/resolve-route-fn
+                            (router/find-by-route-name routes :500))
+        server-error (or (get opts :site/server-error)
                          route-server-error)
         m (utils/deep-merge
            {:session {:cookie-name "id"
