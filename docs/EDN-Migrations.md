@@ -23,22 +23,44 @@ Existing SQL migrations in Coast still work, which is great, know SQL? good, you
 want with your database schema. So this is an option for people who don't care what the schema looks like necessarily, or people
 who want to let the framework take care of that and get some benefits from it. Here's what this new schema migration looks like.
 
-From your repl:
+From your nREPL client:
 
 ```clojure
 (coast/gen "migration")
 ```
 
-Change your db schema like this
+## An example
+
+Here's what it looks like practically using the migration file from earlier
 
 ```clojure
-(def todos-users [{:db/col :person/name :db/type "text" :db/unique? true :db/nil? false}
-                  {:db/rel :person/todos :db/type :many :db/ref :todo/person}
-                  {:db/rel :todo/person :db/type :one :db/ref :person/id}
-                  {:db/col :todo/name :db/type "text"}
-                  {:db/col :todo/done :db/type "boolean" :db/default false :db/nil? false}])
+; migrations.edn
+[{:db/col :author/name
+  :db/type "text"
+  :db/unique? true}
 
-(coast/migrate)
+ {:db/col :author/email
+  :db/type "text"
+  :db/unique? true}
+
+ {:db/rel :author/posts
+  :db/type :many
+  :db/joins :post/author}
+
+ {:db/ident :post/slug
+  :db/type "text"
+  :db/unique? true}
+
+ {:db/col :post/title
+  :db/type "text"
+  :db/nil? false}]
+```
+
+Run the migration (again from the nREPL client)
+
+```clojure
+(comment
+  (coast/migrate))
 ```
 
 You can run this over and over, lighthouse keeps track in a schema_migrations table in your db
@@ -55,18 +77,18 @@ new migration. If you're unsure of what's about to happen, run this instead it w
 Made a mistake with a column name? No problem, rename columns like this
 
 ```clojure
-(def rename-done [{:db/id :todo/done :db/col :todo/finished}])
+; migrations.edn
 
-(coast/migrate)
+[{:db/id :todo/done :db/col :todo/finished}])
 ```
 
 If you're not using sqlite, you can alter columns quite a bit more with the same syntax,
 reference the existing column with `:db/id` and then give it the properties you want to change
 
 ```clojure
-(def done->done-at [{:db/id :todo/done :db/col :todo/done-at :db/type "timestamptz" :db/nil? false}])
+; migrations.edn
 
-(coast/migrate)
+[{:db/id :todo/done :db/col :todo/done-at :db/type "timestamptz" :db/nil? false}]
 ```
 
 ## Tables
