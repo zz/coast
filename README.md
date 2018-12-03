@@ -93,6 +93,7 @@ This will show you the layout of a default coast project:
 ├── deps.edn
 ├── resources
 │   ├── assets.edn
+│   ├── migrations.edn
 │   └── public
 │       ├── css
 │       │   └── app.css
@@ -100,86 +101,79 @@ This will show you the layout of a default coast project:
 │           └── app.js
 ├── src
 │   ├── components.clj
-│   ├── error
-│   │   ├── not_found.clj
-│   │   └── server_error.clj
-│   ├── home
-│   │   └── index.clj
+│   ├── home.clj
 │   ├── routes.clj
 │   └── server.clj
 └── test
     └── server_test.clj
 
-9 directories, 14 file
+7 directories, 13 files
 ```
 
 ### Databases
 
-For the sake of this tutorial, we want to show a list of todos as the first thing people see when they come to our site. In coast, that means making a place for these todos to live, in this case (and in every case): the database. Assuming your postgres server is up and running, you can make a database with a handy shortcut that coast gives you:
+For the sake of this tutorial, we want to show a list of todos as the first thing people see when they come to our site. In coast, that means making a place for these todos to live, in this case (and in every case): the database. Coast by default uses sqlite, so making a database is as easy as
 
 ```bash
-make db/create
-# clj -A\:db/create
-# Database todos_dev created successfully
+touch todos_dev.db
 ```
-
-This will create a database with the name of your project and whatever `COAST_ENV` is set to, which by default is `dev`. So the database name will be `todos_dev`.
 
 ### Migrations
 
-Now that the database is created, let's generate a migration:
+Now that the database is created, let's generate a migration, first get connected to your nREPL client of choice, I use atom with proto-repl, here's how I connect. From the terminal in the todos folder:
 
 ```bash
-coast gen migration add-todos
-# resources/migrations/20180926190239_add_todos.edn created
+make repl
 ```
 
-This will create a file in `resources/migrations` with a timestamp and whatever name you gave it, in this case: `add_todos`. Let's fill it in with our first migration:
+Then in atom open any clj file, like server.clj then press Ctrl + Command + Y and after the dialog opens hit Enter. Now that you're in, you can either type this directly in the newly opened nREPL client tab, or in your source file, I usually just add a comment form and then type stuff in under that, like so:
+
+```clojure
+; server.clj
+(comment
+  (coast/gen "migration" "todo/name" "todo/completed-at"))
+```
+
+Then make sure your cursor is within the `(coast/gen ...)` form and press Command + Shift + B. That will send the form over to the running program (the nREPL server) and evaluate it and create a new migration line in `migrations.edn`.
+
+Change `migrations.edn` to look like this
 
 ```clojure
 [{:db/col :todo/name
   :db/type "text"}
 
  {:db/col :todo/completed-at
-  :db/type "timestamptz"}]
+  :db/type "timestamp"}]
 ```
 
-This is edn, not sql, although sql migrations would work, in coast it's cooler if you use edn migrations for the sweet query power you'll have later. The left side of the `/` is the name of the table, and the right side is the name of the column. Or in coast terms: `:<resource>/<prop>`  Let's apply this migration to the database
+This is edn, not sql, although sql migrations would work, in coast it's cooler if you use edn migrations for the sweet query power you'll have later. The left side of the `/` is the name of the table, and the right side is the name of the column. Or in coast terms: `:<resource>/<prop>`  Let's apply this migration to the database:
 
-```bash
-make db/migrate
-# clj -A\:db/migrate
-#
-# -- Migrating:  20180926160239_add_todos ---------------------
-#
-# [#:db{:col :todo/name, :type text} #:db{:col :todo/completed-at, :type timestamptz}]
-#
-# -- 20180926160239_add_todos ---------------------
-#
-# 20180926160239_add_todos migrated successfully
+```clojure
+(comment
+  (coast/migrate))
 ```
 
-This updates the database and creates a `resources/schema.edn` file to keep track of relationships and things that don't normally fit in the database schema.
+This updates the database schema with a `todo` table, `name` and `completed_at` columns.
 
 ### Generators
 
 Now that the database has been migrated and we have a place to store the todos we want to show them too. This is where coast generators come in. Rather than you having to type everything out, generators are a way to get you started and you can customize from there.
 
-This will create a file in the `src` directory with the name of an `action`. Coast is a pretty humble web framework, there's no FRP or graph query languages or anything. There are just five actions: `create`, `read`, `update`, `delete`, and `list`. You can specify an action to generate or you can generate all five. Lets just generate the list file for now:
-
-```bash
-coast gen action todo:list
-# src/todo/list.clj created successfully
-```
-
-This is specifying which resource (table) to generate and it puts a file in `src/todo/list.clj` which looks like this:
+This will create a file in the `src` directory with the name of an `action`. Coast is a pretty humble web framework, there's no FRP or graph query languages or anything. There are just seven actions: `build`, `create`, `edit`, `change`, `delete`, `view` and `index`.
 
 ```clojure
-(ns todo.list
-  (:require [coast :refer [pull q url-for validate]]))
+(comment
+  (coast/gen "action" "todo"))
+```
 
-(defn view [request]
-  (let [rows (q '[:pull [:todo/name :todo/completed-at]])]
+There should be a new file in `src` named `todo.clj`:
+
+```clojure
+(ns todo
+  (:require [coast]))
+
+(defn index [request]
+  (let [rows (coast/q '[:pull [:todo/name :todo/completed-at]])]
     [:table
      [:thead
       [:tr
@@ -190,6 +184,8 @@ This is specifying which resource (table) to generate and it puts a file in `src
         [:tr
          [:td (:todo/name row)]
          [:td (:todo/completed-at row)]])]]))
+
+; the rest omitted for brevity
 ```
 
 ### Routes
@@ -199,15 +195,32 @@ One thing coast doesn't do yet is update the routes file, let's do that now:
 ```clojure
 (ns routes)
 
-(def routes [[:get "/"          :home.index/view :home]
-             [:get "/404"       :error.not-found/view :404]
-             [:get "/500"       :error.server-error/view :500]
-             [:get "/todo/list" :todo.list/view]])
+(def routes [[:get "/"      :home/index]
+             [:get "/404"   :home/not-found :404]
+             [:get "/500"   :home/server-error :500]
+             [:get "/todos" :todo/index]])
 ```
 
-Now we can check it out in the browser, there's no styling or anything so it's not going to look amazing, start up a repl with `make repl` and run `(server/-main)` then go to `http://localhost:1337/todo/list` to check out your handiwork.
+Now we can check it out in the browser, there's no styling or anything so it's not going to look amazing, but:
 
-Example projects and more coming soon...
+```clojure
+; server.clj
+(comment
+  (-main))
+```
+
+Go to `http://localhost:1337/todos` to check out your handiwork. Looks blank, let's make a few todos from the REPL:
+
+```clojure
+; server.clj
+
+(comment
+  (coast/insert [{:todo/name "todo #1"}
+                 {:todo/name "todo #2"}
+                 {:todo/name "todo #3" :todo/completed-at (coast/instant)}]))
+```
+
+Now you can refresh and check out the todos.
 
 ## Read The Docs
 
