@@ -8,7 +8,9 @@
 (defn qualify-ident [k]
   (when (and (ident? k)
              (re-find #"-" (name k)))
-    (let [[kns kn] (string/split (name k) #"-")]
+    (let [parts (string/split (name k) #"-")
+          kns (first parts)
+          kn (string/join "-" (rest parts))]
       (keyword (or kns "") (or kn "")))))
 
 (defn replacement [match m]
@@ -156,25 +158,30 @@
         kn (name k)]
     (symbol kns kn)))
 
-(defn resolve-route-fn [f]
+(defn resolve-fn [f]
   (cond
     (symbol? f) (resolve f)
     (keyword? f) (-> f keyword->symbol resolve)
     :else f))
 
-(defn resolve-route [val]
-  (if (vector? val)
-    (-> (first val) (resolve-route-fn))
-    (resolve-route-fn val)))
+(defn resolve-route-fn [route]
+  (let [f (nth route 2)]
+    (if (vector? f)
+      (-> (first f) (resolve-fn))
+      (resolve-fn f))))
 
 (defn route-middleware-fn [val]
   (when (vector? val)
     (->> (rest val)
-         (map resolve-route-fn)
+         (map resolve-fn)
          (apply comp))))
 
 (defn route-name [route]
   (-> route last keyword))
+
+(defn find-by-route-name [routes k]
+  (-> (filter #(= k (route-name %)) routes)
+      (first)))
 
 (defn handler [opts]
   (fn [request]
@@ -216,7 +223,7 @@
                     (first))
           [_ route-uri f] route
           route-params (route-params uri route-uri)
-          route-handler (resolve-route f)
+          route-handler (resolve-route-fn route)
           middleware (route-middleware-fn f)
           request (assoc request ::name (if (vector? f) (first f) f)
                                  ::handler route-handler
@@ -224,10 +231,6 @@
                                  ::api-route? (api-route? route)
                                  :params (merge params route-params))]
       (handler request))))
-
-(defn find-by-route-name [routes k]
-  (-> (filter #(= k (route-name %)) routes)
-      (first)))
 
 (defn url-for-routes-args? [k m]
   (and (ident? k)
