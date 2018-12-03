@@ -1,7 +1,5 @@
 (ns coast.router
   (:require [clojure.string :as string]
-            [clojure.edn :as edn]
-            [clojure.java.io :as io]
             [coast.responses :as res]
             [coast.utils :as utils]))
 
