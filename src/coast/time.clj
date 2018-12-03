@@ -1,5 +1,5 @@
 (ns coast.time
-  (:import (java.time LocalDateTime OffsetDateTime ZoneOffset ZoneId)
+  (:import (java.time LocalDateTime OffsetDateTime ZoneOffset ZoneId Instant)
            (java.time.format DateTimeFormatter)
            (java.time.temporal ChronoUnit)))
 
@@ -21,6 +21,9 @@
      (LocalDateTime/ofInstant (.toInstant d) tz)))
   ([d]
    (local d ZoneOffset/UTC)))
+
+(defn instant []
+  (Instant/now))
 
 (defn since
   ([t tz]

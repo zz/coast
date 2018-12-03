@@ -72,6 +72,7 @@
    uuid]
 
   [coast.time
+   instant
    now]
 
   [hiccup2.core
