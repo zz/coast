@@ -57,3 +57,6 @@
 
 (def create db/create)
 (def drop db/drop)
+
+(defn schema []
+  (db/schema @conn))

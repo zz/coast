@@ -41,7 +41,8 @@
    update
    cols
    create
-   drop]
+   drop
+   schema]
 
   [coast.validation
    validate]
