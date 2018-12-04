@@ -1,7 +1,7 @@
 {:paths ["src" "resources"]
 
  :deps {asset-minifier {:mvn/version "0.2.5"}
-        coast-framework/lighthouse {:mvn/version "1.1.1"}
+        coast-framework/lighthouse {:mvn/version "1.1.2"}
         hiccup {:mvn/version "2.0.0-alpha1"}
         http-kit {:mvn/version "2.3.0"}
         jkkramer/verily {:mvn/version "0.6.0"}
